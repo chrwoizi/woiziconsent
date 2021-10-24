@@ -1,4 +1,4 @@
-const extensionName = 'woiziconsent';
+var extensionName = 'woiziconsent';
 
 var logger = {
 
