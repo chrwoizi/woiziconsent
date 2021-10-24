@@ -35,7 +35,7 @@ function onlyUnique(value, index, self) {
     return self.indexOf(value) === index;
 }
 
-function distance(element1, element2) {
+function pixelDistance(element1, element2) {
     const element1Rect = element1.getBoundingClientRect();
     const element1MiddleX = element1Rect.left + element1Rect.width / 2 + window.scrollX;
     const element1MiddleY = element1Rect.top + element1Rect.height / 2 + window.scrollY;
@@ -49,16 +49,16 @@ function distance(element1, element2) {
     return Math.sqrt(distanceX * distanceX + distanceY * distanceY);
 }
 
-function minDistance(element, toElements) {
-    return Math.min(toElements.map(toElement => distance(element, toElement)));
+function minPixelDistance(element, toElements) {
+    return Math.min(...toElements.map(toElement => pixelDistance(element, toElement)));
 }
 
-function sortByDistance(elements, toElement) {
-    return elements.sort((a, b) => distance(a, toElement) - distance(b, toElement));
+function sortByPixelDistance(elements, toElement) {
+    return elements.sort((a, b) => pixelDistance(a, toElement) - pixelDistance(b, toElement));
 }
 
 function sortByMinDistance(elements, toElements) {
-    return elements.sort((a, b) => minDistance(a, toElements) - minDistance(b, toElements));
+    return elements.sort((a, b) => minPixelDistance(a, toElements) - minPixelDistance(b, toElements));
 }
 
 function listParents(element, maxDepth = 999, currentDepth = 0) {
@@ -88,7 +88,7 @@ function treeDistance(element1, element2) {
 }
 
 function minTreeDistance(element, toElements) {
-    return Math.min(toElements.map(toElement => treeDistance(element, toElement)));
+    return Math.min(...toElements.map(toElement => treeDistance(element, toElement)));
 }
 
 function sortByTreeDistance(elements, toElement) {
