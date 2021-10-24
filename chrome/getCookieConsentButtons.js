@@ -4,6 +4,8 @@ function getCookieConsentButtons() {
     ];
 
     const minTextLength = 50;
+    const maxTreeDistance = 10;
+    const maxPixelDistance = 400;
 
     const elements = getVisibleElements();
     const textElements = elements
@@ -38,8 +40,10 @@ function getCookieConsentButtons() {
     ];
 
     const buttons = getButtons();
-    const acceptButtons = buttons.filter(x => hasInnerText(x, acceptPatterns));
-    logger.log(acceptButtons);
+    const acceptButtons = buttons
+        .filter(x => hasInnerText(x, acceptPatterns))
+        .filter(x => minTreeDistance(x, textElements) < maxTreeDistance)
+        .filter(x => minPixelDistance(x, textElements) < maxPixelDistance);
 
     return sortByMinTreeDistance(acceptButtons, textElements);
 }
