@@ -42,7 +42,7 @@ chrome.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
             await executeScripts(
                 {
                     tabId: tab.id,
-                    files: ['logger.js', 'inuserview.js', 'common.js', 'getCookieConsentButtons.js', 'page.js']
+                    files: ['logger.js', 'inuserview.js', 'common.js', 'page.js']
                 }
             )
         }
@@ -52,8 +52,10 @@ chrome.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
 
         function runAttempt() {
             logger.log('attempt ' + (attempt + 1) + '/' + attempts.length);
+            const startTime = new Date();
             chrome.tabs.sendMessage(tab.id, message).then(result => {
-                logger.log(result);
+                const duration = new Date().getTime() - startTime.getTime();
+                logger.log(result, `${(duration / 1000).toFixed(2)} seconds`);
                 if (!result.success) {
                     attempt++;
                     if (attempt < attempts.length) {

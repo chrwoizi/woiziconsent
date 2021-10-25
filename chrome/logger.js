@@ -13,22 +13,22 @@ var logger = {
             logLevel = logger.OFF
 
         if (logLevel >= this.ERROR)
-            this.error = m => { console.error.bind(window.console)(extensionName + ':', m); }
+            this.error = (...m) => { console.error.bind(window.console)(extensionName + ':', ...m); }
         else
             this.error = () => { }
 
         if (logLevel >= this.WARN)
-            this.warn = m => { console.warn.bind(window.console)(extensionName + ':', m); }
+            this.warn = (...m) => { console.warn.bind(window.console)(extensionName + ':', ...m); }
         else
             this.warn = () => { }
 
         if (logLevel >= this.INFO)
-            this.info = m => { console.info.bind(window.console)(extensionName + ':', m); }
+            this.info = (...m) => { console.info.bind(window.console)(extensionName + ':', ...m); }
         else
             this.info = () => { }
 
         if (logLevel >= this.DEBUG)
-            this.log = m => { console.log.bind(window.console)(extensionName + ':', m); }
+            this.log = (...m) => { console.log.bind(window.console)(extensionName + ':', ...m); }
         else
             this.log = () => { }
 
