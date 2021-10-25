@@ -189,8 +189,8 @@ function isJWT(token) {
     const regex = /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/;
     if (!regex.test(token)) return false;
 
-    const headerJson = atob(token.split('.')[0]);
     try {
+        const headerJson = atob(token.split('.')[0]);
         const header = JSON.parse(headerJson);
         if (header.alg) return true;
     }
@@ -198,8 +198,8 @@ function isJWT(token) {
         return false;
     }
 
-    const bodyJson = atob(token.split('.')[1]);
     try {
+        const bodyJson = atob(token.split('.')[1]);
         const header = JSON.parse(bodyJson);
         if (header.exp) return true;
         if (header.iss) return true;
