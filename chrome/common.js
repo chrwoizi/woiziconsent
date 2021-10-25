@@ -21,12 +21,12 @@ function scrollIntoViewCenter(element) {
 }
 
 function isTopmostElement(element) {
-    const resetScroll = scrollIntoViewCenter(element);
+    //const resetScroll = scrollIntoViewCenter(element);
 
     const b = element.getBoundingClientRect()
     const other = document.elementFromPoint((b.left + b.right) / 2, (b.top + b.bottom) / 2);
 
-    resetScroll();
+    //resetScroll();
 
     return other === element;
 }
@@ -100,12 +100,12 @@ function sortByMinTreeDistance(elements, toElements) {
 }
 
 function isVisibleByStyles(element) {
-    const resetScroll = scrollIntoViewCenter(element);
+    //const resetScroll = scrollIntoViewCenter(element);
 
     const styles = window.getComputedStyle(element)
     const result = styles.visibility !== 'hidden' && styles.display !== 'none';
 
-    resetScroll();
+    //resetScroll();
 
     return result;
 }
@@ -159,12 +159,57 @@ function getClickHandlerInParents(element) {
     return getClickHandlerInParents(element.parentElement)
 }
 
-function getButtons() {
-    return getVisibleElements()
+function getButtons(visibleElements) {
+    return (visibleElements || getVisibleElements())
         .filter(isTopmostElement)
         .map(getClickHandlerInParents)
         .filter(Boolean)
         .filter(onlyUnique)
         .filter(x => x !== document)
         .filter(x => x !== document.body);
+}
+
+function readStorage(storage) {
+    const data = [];
+    for (let i = 0, len = storage.length; i < len; i++) {
+        const key = storage.key(i);
+        if (key) {
+            const value = storage[key];
+            data.push({ key: key, value: value });
+        }
+    }
+    return data;
+}
+
+async function readCookies() {
+    return cookieStore.getAll();
+}
+
+function isJWT(token) {
+    const regex = /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/;
+    if (!regex.test(token)) return false;
+
+    const headerJson = atob(token.split('.')[0]);
+    try {
+        const header = JSON.parse(headerJson);
+        if (header.alg) return true;
+    }
+    catch (e) {
+        return false;
+    }
+
+    const bodyJson = atob(token.split('.')[1]);
+    try {
+        const header = JSON.parse(bodyJson);
+        if (header.exp) return true;
+        if (header.iss) return true;
+        if (header.email) return true;
+        if (header.sub) return true;
+        if (header.userId) return true;
+    }
+    catch (e) {
+        return false;
+    }
+
+    return false;
 }
