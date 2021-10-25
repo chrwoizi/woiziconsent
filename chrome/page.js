@@ -3,11 +3,11 @@
 function getLogoutButtons(visibleElements) {
     const logoutPatterns = [
         // english
-        /\blog-?\s*-?out\b/i,
-        /\bsign-?\s*-?out\b/i,
+        /.{0,30}\blog-?\s*-?out\b.{0,30}/i,
+        /.{0,30}\bsign-?\s*-?out\b.{0,30}/i,
 
         // german
-        /\bausloggen\b/i,
+        /.{0,30}\bausloggen\b.{0,30}/i,
     ];
 
     const buttons = getButtons(visibleElements);
@@ -29,6 +29,16 @@ async function isLoggedIn() {
     return false;
 }
 
+function isPositionInFlowDirection(element, refElement) {
+    const elementRect = element.getBoundingClientRect();
+    const elementMiddleX = elementRect.left + elementRect.width / 2 + window.scrollX;
+    const elementMiddleY = elementRect.top + elementRect.height / 2 + window.scrollY;
+
+    const refElementRect = refElement.getBoundingClientRect();
+
+    return elementMiddleX > refElementRect.left && elementMiddleY > refElementRect.top;
+}
+
 async function getCookieConsentButtons(visibleElements) {
     const cookiesPattern = [
         /\bcookies\b/i
@@ -36,51 +46,54 @@ async function getCookieConsentButtons(visibleElements) {
 
     const acceptPatterns = [
         // english
-        /\baccept\b/i,
-        /\bsave\b/i,
-        /\bgot\s+it\b/i,
-        /\bi\s+understand\b/i,
-        /\bunderstood\b/i,
-        /\ballow\b/i,
-        /\bagree\b/i,
-        /\backnowledged?\b/i,
+        /.{0,30}\baccept\b.{0,30}/i,
+        /.{0,30}\bsave\b.{0,30}/i,
+        /.{0,30}\bgot\s+it\b.{0,30}/i,
+        /.{0,30}\bi\s+understand\b.{0,30}/i,
+        /.{0,30}\bunderstood\b.{0,30}/i,
+        /.{0,30}\ballow\b.{0,30}/i,
+        /.{0,30}\bagree\b.{0,30}/i,
+        /.{0,30}\backnowledged?\b.{0,30}/i,
 
         // german
-        /\bakzeptieren\b/i,
-        /\bannehmen\b/i,
-        /\bzustimmen\b/i,
-        /\bstimme\s+zu\b/i,
-        /\bspeichern\b/i,
-        /\bin\s+ordnung\b/i,
-        /\beinverstanden\b/i,
-        /\bverstanden\b/i,
-        /\bstimme\s+(dem\s+)?zu\b/i,
-        /\bbestätigen\b/i,
-        /\bokay\b/i,
-        /\bzulassen\b/i,
-        /\berlauben?\b/i,
-        /\beinwilligen\b/i,
-        /\bich\s+willige\s+ein\b/i,
+        /.{0,30}\bakzeptieren?\b.{0,30}/i,
+        /.{0,30}\bannehmen\b.{0,30}/i,
+        /.{0,30}\bzustimmen\b.{0,30}/i,
+        /.{0,30}\bstimme\s+zu\b.{0,30}/i,
+        /.{0,30}\bspeichern\b.{0,30}/i,
+        /.{0,30}\bin\s+ordnung\b.{0,30}/i,
+        /.{0,30}\beinverstanden\b.{0,30}/i,
+        /.{0,30}\bverstanden\b.{0,30}/i,
+        /.{0,30}\bstimme\s+(dem\s+)?zu\b.{0,30}/i,
+        /.{0,30}\bbestätigen?\b.{0,30}/i,
+        /.{0,30}\bokay\b.{0,30}/i,
+        /.{0,30}\bzulassen\b.{0,30}/i,
+        /.{0,30}\blasse\s+zu\b.{0,30}/i,
+        /.{0,30}\berlauben?\b.{0,30}/i,
+        /.{0,30}\beinwilligen\b.{0,30}/i,
+        /.{0,30}\bich\s+willige\s+ein\b.{0,30}/i,
     ];
 
     const minTextLength = 50;
     const maxTreeDistance = 10;
-    const maxPixelDistance = 400;
+    const maxPixelDistance = 100;
 
     const elements = visibleElements || getVisibleElements();
     const textElements = elements
         .filter(x => [...x.childNodes].find(c => c.nodeType == Node.TEXT_NODE && matchesPatterns(c.textContent, cookiesPattern) && c.textContent.length > minTextLength))
         .sort((a, b) => listParents(b).length - listParents(a).length);
-
     if (textElements.length === 0) return [];
 
     const buttons = getButtons(elements);
     const acceptButtons = buttons
-        .filter(x => hasInnerText(x, acceptPatterns))
-        .filter(x => minTreeDistance(x, textElements) < maxTreeDistance)
-        .filter(x => minPixelDistance(x, textElements) < maxPixelDistance);
+        .filter(x => hasInnerText(x, acceptPatterns));
 
-    return sortByMinTreeDistance(acceptButtons, textElements);
+    const cookieAcceptButtons = acceptButtons
+        .filter(x => minTreeDistance(x, textElements) < maxTreeDistance)
+        .filter(x => minEdgePixelDistance(x, textElements) < maxPixelDistance)
+        .filter(x => textElements.find(y => isPositionInFlowDirection(x, y)))
+
+    return sortByMinTreeDistance(cookieAcceptButtons, textElements);
 }
 
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
@@ -104,6 +117,17 @@ async function woiziconsentContent(request, _sender, sendResponse) {
             if (!inuserview(document.body)) {
                 return { success: false };
             }
+        }
+
+        var storageKey = 'woiziconsent-fatal';
+
+        if (localStorage.getItem(storageKey).value === request.version) {
+            logger.log('failed in the past');
+            return { success: false, fatal: true };
+        }
+
+        if (request.fatal) {
+            localStorage.setItem(storageKey, request.version);
         }
 
         const elements = getVisibleElements()

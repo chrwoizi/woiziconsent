@@ -1,7 +1,7 @@
 {
     "name": "woiziconsent",
     "description": "woiziconsent",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "manifest_version": 2,
     "background": {
         "page": "background.html"
@@ -23,6 +23,6 @@
         "128": "icons/icon128.png",
         "256": "icons/icon256.png"
     },
-    "permissions": ["tabs", "<all_urls>", "notifications", "webNavigation", "https://*/*"],
+    "permissions": ["tabs", "<all_urls>"],
     "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'"
 }

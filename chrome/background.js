@@ -47,7 +47,7 @@ chrome.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
             )
         }
 
-        const attempts = [1, 100, 200, 500, 500, 1000, 1000, 2000, 2000];
+        const attempts = [1, 100, 200, 500, 500, 1000, 1000];
         let attempt = 0;
 
         function runAttempt() {
@@ -57,10 +57,22 @@ chrome.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
                 const duration = new Date().getTime() - startTime.getTime();
                 logger.log(result, `${(duration / 1000).toFixed(2)} seconds`);
                 if (!result.success) {
-                    attempt++;
-                    if (attempt < attempts.length) {
-                        const timeout = attempts[attempt];
-                        setTimeout(runAttempt, timeout);
+                    if (result.fatal) {
+                        logger.log('fatal error');
+                    }
+                    else {
+                        attempt++;
+                        if (attempt < attempts.length) {
+                            const timeout = attempts[attempt];
+                            setTimeout(runAttempt, timeout);
+                        }
+                        else {
+                            chrome.tabs.sendMessage(tab.id, {
+                                fatal: true,
+                                version: chrome.runtime.getManifest().version,
+                                logLevel: logger.level
+                            });
+                        }
                     }
                 }
             })

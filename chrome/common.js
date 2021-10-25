@@ -6,27 +6,9 @@ function hasInnerText(element, patterns) {
     return getOverlaidElements(element).find(x => matchesPatterns(x.innerText, patterns));
 }
 
-function scrollIntoViewCenter(element) {
-    const elementRect = element.getBoundingClientRect();
-    const elementMiddleX = elementRect.left + elementRect.width / 2 + window.scrollX;
-    const elementMiddleY = elementRect.top + elementRect.height / 2 + window.scrollY;
-    const scrollX = elementMiddleX - (window.innerWidth / 2);
-    const scrollY = elementMiddleY - (window.innerHeight / 2);
-
-    const oldScroll = [window.scrollX, window.scrollY];
-    window.scrollTo({ left: scrollX, top: scrollY, behavior: 'instant' });
-    return () => {
-        window.scrollTo({ left: oldScroll[0], top: oldScroll[1], behavior: 'instant' })
-    }
-}
-
 function isTopmostElement(element) {
-    //const resetScroll = scrollIntoViewCenter(element);
-
     const b = element.getBoundingClientRect()
-    const other = document.elementFromPoint((b.left + b.right) / 2, (b.top + b.bottom) / 2);
-
-    //resetScroll();
+    const other = element.getRootNode().elementFromPoint((b.left + b.right) / 2, (b.top + b.bottom) / 2);
 
     return other === element;
 }
@@ -35,30 +17,51 @@ function onlyUnique(value, index, self) {
     return self.indexOf(value) === index;
 }
 
-function pixelDistance(element1, element2) {
-    const element1Rect = element1.getBoundingClientRect();
-    const element1MiddleX = element1Rect.left + element1Rect.width / 2 + window.scrollX;
-    const element1MiddleY = element1Rect.top + element1Rect.height / 2 + window.scrollY;
-
-    const element2Rect = element2.getBoundingClientRect();
-    const element2MiddleX = element2Rect.left + element2Rect.width / 2 + window.scrollX;
-    const element2MiddleY = element2Rect.top + element2Rect.height / 2 + window.scrollY;
-
-    const distanceX = element2MiddleX - element1MiddleX;
-    const distanceY = element2MiddleY - element1MiddleY;
+function pixelDistance(x1, y1, x2, y2) {
+    const distanceX = x2 - x1;
+    const distanceY = y2 - y1;
     return Math.sqrt(distanceX * distanceX + distanceY * distanceY);
 }
 
-function minPixelDistance(element, toElements) {
-    return Math.min(...toElements.map(toElement => pixelDistance(element, toElement)));
+function edgePixelDistance(element1, element2) {
+    const r1 = element1.getBoundingClientRect();
+    const r2 = element2.getBoundingClientRect();
+
+    const left = r2.right < r1.left
+    const right = r1.right < r2.left
+    const bottom = r2.bottom < r1.top
+    const top = r1.bottom < r2.top
+
+    if (top && left)
+        return pixelDistance(r1.left, r1.bottom, r2.right, r2.top)
+    else if (left && bottom)
+        return pixelDistance(r1.left, r1.top, r2.right, r2.bottom)
+    else if (bottom && right)
+        return pixelDistance(r1.right, r1.top, r2.left, r2.bottom)
+    else if (right && top)
+        return pixelDistance(r1.right, r1.bottom, r2.left, r2.top)
+    else if (left)
+        return r1.left - r2.right
+    else if (right)
+        return r2.left - r1.right
+    else if (bottom)
+        return r1.top - r2.bottom
+    else if (top)
+        return r2.top - r1.bottom
+    else
+        return 0;
 }
 
-function sortByPixelDistance(elements, toElement) {
-    return elements.sort((a, b) => pixelDistance(a, toElement) - pixelDistance(b, toElement));
+function minEdgePixelDistance(element, toElements) {
+    return Math.min(...toElements.map(toElement => edgePixelDistance(element, toElement)));
 }
 
-function sortByMinDistance(elements, toElements) {
-    return elements.sort((a, b) => minPixelDistance(a, toElements) - minPixelDistance(b, toElements));
+function sortByEdgePixelDistance(elements, toElement) {
+    return elements.sort((a, b) => edgePixelDistance(a, toElement) - edgePixelDistance(b, toElement));
+}
+
+function sortByMinEdgePixelDistance(elements, toElements) {
+    return elements.sort((a, b) => minEdgePixelDistance(a, toElements) - minEdgePixelDistance(b, toElements));
 }
 
 function listParents(element, maxDepth = 999, currentDepth = 0) {
@@ -100,18 +103,16 @@ function sortByMinTreeDistance(elements, toElements) {
 }
 
 function isVisibleByStyles(element) {
-    //const resetScroll = scrollIntoViewCenter(element);
-
     const styles = window.getComputedStyle(element)
     const result = styles.visibility !== 'hidden' && styles.display !== 'none';
-
-    //resetScroll();
 
     return result;
 }
 
-function getVisibleElements() {
-    return [...document.querySelectorAll("*")]
+function getVisibleElements(root) {
+    return [...(root ?? document).querySelectorAll("*")]
+        .map(x => x.shadowRoot ? [x, ...getVisibleElements(x.shadowRoot)] : [x])
+        .reduce((a, i) => [...a, ...i], [])
         .filter(isVisibleByStyles)
         .filter(x => x !== document)
         .filter(x => x !== document.body);
