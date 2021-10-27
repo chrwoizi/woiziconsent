@@ -8,7 +8,11 @@ function hasInnerText(element, patterns) {
 
 function isTopmostElement(element) {
     const b = element.getBoundingClientRect()
-    const other = element.getRootNode().elementFromPoint((b.left + b.right) / 2, (b.top + b.bottom) / 2);
+
+    let rootNode = element.getRootNode() || document;
+    if (!rootNode.elementFromPoint) rootNode = document;
+
+    const other = rootNode.elementFromPoint((b.left + b.right) / 2, (b.top + b.bottom) / 2);
 
     return other === element;
 }
