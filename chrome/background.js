@@ -25,13 +25,17 @@ chrome.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
     if (changeInfo.status === 'complete') {
         const message = {
             tabId: tab.id,
+            version: chrome.runtime.getManifest().version,
             logLevel: logger.level
         }
 
         let pong;
         try {
             logger.log('ping page');
-            pong = await chrome.tabs.sendMessage(tab.id, { "ping": true })
+            pong = await chrome.tabs.sendMessage(tab.id, {
+                ...message,
+                ping: true,
+            })
         }
         catch (e) {
             logger.log(e.toString());
@@ -68,9 +72,8 @@ chrome.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
                         }
                         else {
                             chrome.tabs.sendMessage(tab.id, {
+                                ...message,
                                 fatal: true,
-                                version: chrome.runtime.getManifest().version,
-                                logLevel: logger.level
                             });
                         }
                     }

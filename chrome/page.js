@@ -121,7 +121,7 @@ async function woiziconsentContent(request, _sender, sendResponse) {
 
         var storageKey = 'woiziconsent-fatal';
 
-        if (localStorage.getItem(storageKey).value === request.version) {
+        if (localStorage.getItem(storageKey) === request.version) {
             logger.log('failed in the past');
             return { success: false, fatal: true };
         }
