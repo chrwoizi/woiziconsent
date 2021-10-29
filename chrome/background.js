@@ -21,7 +21,10 @@ async function executeScripts(scripts) {
 }
 
 chrome.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
-    if (tab.url.indexOf('chrome://') !== -1) return;
+    if (tab.url.indexOf('http://') === -1 && tab.url.indexOf('https://') === -1) {
+        console.log('not running on url ' + tab.url);
+        return;
+    }
     if (changeInfo.status === 'complete') {
         const message = {
             tabId: tab.id,
@@ -60,11 +63,11 @@ chrome.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
             chrome.tabs.sendMessage(tab.id, message).then(result => {
                 const duration = new Date().getTime() - startTime.getTime();
                 logger.log(result, `${(duration / 1000).toFixed(2)} seconds`);
-                if (!result.success) {
-                    if (result.fatal) {
-                        logger.log('fatal error');
-                    }
-                    else {
+                if (result.done) {
+                    logger.log('done');
+                }
+                else {
+                    if (!result.success) {
                         attempt++;
                         if (attempt < attempts.length) {
                             const timeout = attempts[attempt];

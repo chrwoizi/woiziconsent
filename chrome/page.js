@@ -72,6 +72,7 @@ async function getCookieConsentButtons(visibleElements) {
         /.{0,30}\berlauben?\b.{0,30}/i,
         /.{0,30}\beinwilligen\b.{0,30}/i,
         /.{0,30}\bich\s+willige\s+ein\b.{0,30}/i,
+        /.{0,30}\bweiter\s+zur\s+seite\b.{0,30}/i,
     ];
 
     const minTextLength = 50;
@@ -97,11 +98,11 @@ async function getCookieConsentButtons(visibleElements) {
 }
 
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
-    woiziconsentContent(request, _sender, sendResponse).then(sendResponse);
+    woiziconsentContent(request).then(sendResponse);
     return true;
 })
 
-async function woiziconsentContent(request, _sender, sendResponse) {
+async function woiziconsentContent(request) {
     try {
         if (request.ping) {
             return { status: "pong" }
@@ -119,11 +120,11 @@ async function woiziconsentContent(request, _sender, sendResponse) {
             }
         }
 
-        var storageKey = 'woiziconsent-fatal';
+        var storageKey = 'woiziconsent';
 
         if (localStorage.getItem(storageKey) === request.version) {
             logger.log('failed in the past');
-            return { success: false, fatal: true };
+            return { done: true };
         }
 
         if (request.fatal) {
@@ -134,13 +135,14 @@ async function woiziconsentContent(request, _sender, sendResponse) {
 
         if (await isLoggedIn(elements)) {
             logger.log('is logged in');
-            return { success: true };
+            return { done: true };
         }
 
         const buttons = await getCookieConsentButtons(elements);
         if (buttons.length > 0) {
             logger.log('automatically accepting cookie consent');
             buttons.forEach(x => x.click());
+            localStorage.setItem(storageKey, request.version);
             return { success: true };
         }
 
