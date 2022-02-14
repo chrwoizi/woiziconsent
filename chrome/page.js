@@ -149,7 +149,7 @@ async function woiziconsentContent(request) {
         return { success: false };
     }
     catch (e) {
-        logger.log(e);
+        if (logger) logger.log(e);
         throw e;
     }
 }
