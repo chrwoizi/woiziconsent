@@ -8,23 +8,56 @@ function getLogoutButtons(visibleElements) {
 
         // german
         /.{0,30}\bausloggen\b.{0,30}/i,
+        /.{0,30}\babmelden\b.{0,30}/i,
     ];
 
     const buttons = getButtons(visibleElements);
-    let logoutButtons = buttons.filter(x => hasInnerText(x, logoutPatterns));
+    let logoutButtons = buttons.filter(x => elementTextMatches(x, logoutPatterns));
 
     return logoutButtons;
 }
 
 async function isLoggedIn() {
-    if (getLogoutButtons().length > 0) return true;
+    const logoutButtons = getLogoutButtons();
+    if (logoutButtons.length > 0) {
+        logger.log('logout button found');
+        logger.log(logoutButtons);
+        return true;
+    }
 
-    if (readStorage(localStorage).find(x => isJWT(x.value))) return true;
+    try {
+        if (readStorage(localStorage).find(x => isJWT(x.value))) {
+            logger.log('jwt found in localStorage');
+            return true;
+        }
+    }
+    catch (e) {
+        logger.log('could not load localStorage');
+        logger.log(e);
+    }
 
-    if (readStorage(sessionStorage).find(x => isJWT(x.value))) return true;
+    try {
+        if (readStorage(sessionStorage).find(x => isJWT(x.value))) {
+            logger.log('jwt found in sessionStorage');
+            return true;
+        }
+    }
+    catch (e) {
+        logger.log('could not load sessionStorage');
+        logger.log(e);
+    }
 
-    const cookies = await readCookies();
-    if (cookies.find(x => isJWT(x.value))) return true;
+    try {
+        const cookies = await readCookies();
+        if (cookies.find(x => isJWT(x.value))) {
+            logger.log('jwt found in cookies');
+            return true;
+        }
+    }
+    catch (e) {
+        logger.log('could not load cookies');
+        logger.log(e);
+    }
 
     return false;
 }
@@ -41,7 +74,8 @@ function isPositionInFlowDirection(element, refElement) {
 
 async function getCookieConsentButtons(visibleElements) {
     const cookiesPattern = [
-        /\bcookies\b/i
+        /\bcookies\b/i,
+        /\bdatenschutz/i
     ];
 
     const acceptPatterns = [
@@ -60,7 +94,7 @@ async function getCookieConsentButtons(visibleElements) {
         /.{0,30}\bannehmen\b.{0,30}/i,
         /.{0,30}\bzustimmen\b.{0,30}/i,
         /.{0,30}\bstimme\s+zu\b.{0,30}/i,
-        /.{0,30}\bspeichern\b.{0,30}/i,
+        /.{0,30}\b(einstellungen\s+)?speichern\b.{0,30}/i,
         /.{0,30}\bin\s+ordnung\b.{0,30}/i,
         /.{0,30}\beinverstanden\b.{0,30}/i,
         /.{0,30}\bverstanden\b.{0,30}/i,
@@ -73,26 +107,48 @@ async function getCookieConsentButtons(visibleElements) {
         /.{0,30}\beinwilligen\b.{0,30}/i,
         /.{0,30}\bich\s+willige\s+ein\b.{0,30}/i,
         /.{0,30}\bweiter\s+zur\s+seite\b.{0,30}/i,
+        /.{0,30}\b(alle\s+)?cookies\s+akzeptieren\b.{0,30}/i,
     ];
 
     const minTextLength = 50;
-    const maxTreeDistance = 10;
-    const maxPixelDistance = 100;
+    const maxTreeDistance = 14;
+    const maxPixelDistance = 400;
 
     const elements = visibleElements || getVisibleElements();
-    const textElements = elements
-        .filter(x => [...x.childNodes].find(c => c.nodeType == Node.TEXT_NODE && matchesPatterns(c.textContent, cookiesPattern) && c.textContent.length > minTextLength))
-        .sort((a, b) => listParents(b).length - listParents(a).length);
+    const textElements = elements.filter((x) => {
+        return (
+            x.innerText?.length > minTextLength &&
+            matchesPatterns(x.innerText, cookiesPattern)
+        );
+    });
+
     if (textElements.length === 0) return [];
 
     const buttons = getButtons(elements);
-    const acceptButtons = buttons
-        .filter(x => hasInnerText(x, acceptPatterns));
+    const acceptButtons = buttons.filter((x) =>
+        elementTextMatches(x, acceptPatterns),
+    );
 
-    const cookieAcceptButtons = acceptButtons
-        .filter(x => minTreeDistance(x, textElements) < maxTreeDistance)
-        .filter(x => minEdgePixelDistance(x, textElements) < maxPixelDistance)
-        .filter(x => textElements.find(y => isPositionInFlowDirection(x, y)))
+    const cookieAcceptButtons = acceptButtons.filter((x) => {
+        const treeDistance = minTreeDistance(x, textElements);
+        if (treeDistance > maxTreeDistance) {
+            return false;
+        }
+
+        const pixelDistance = minEdgePixelDistance(x, textElements);
+        if (pixelDistance > maxPixelDistance) {
+            return false;
+        }
+
+        const isInFlowOfTextElement = textElements.find((y) =>
+            isPositionInFlowDirection(x, y),
+        );
+        if (!isInFlowOfTextElement) {
+            return false;
+        }
+
+        return true;
+    });
 
     return sortByMinTreeDistance(cookieAcceptButtons, textElements);
 }
@@ -108,7 +164,7 @@ async function woiziconsentContent(request) {
             return { status: "pong" }
         }
 
-        if (!logger || !getButtons) {
+        if (!window.logger || !getButtons) {
             return { success: false };
         }
 
@@ -149,7 +205,12 @@ async function woiziconsentContent(request) {
         return { success: false };
     }
     catch (e) {
-        if (logger) logger.log(e);
+        try {
+            if (logger) logger.log(e);
+        }
+        catch (e2) {
+            console.log(e);
+        }
         throw e;
     }
 }
