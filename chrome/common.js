@@ -2,8 +2,33 @@ function matchesPatterns(text, patterns) {
     return patterns.filter(x => x.test(text)).length > 0;
 }
 
-function hasInnerText(element, patterns) {
-    return getOverlaidElements(element).find(x => matchesPatterns(x.innerText, patterns));
+function elementTextMatches(element, patterns) {
+    const overlaid = getOverlaidElements(element);
+    const found = overlaid.find((x) => {
+        const innerText = x.innerText;
+        if (innerText && matchesPatterns(innerText, patterns)) {
+            return true;
+        }
+
+        const title = element.title;
+        if (title && matchesPatterns(title, patterns)) {
+            return true;
+        }
+
+        const ariaLabel = element.ariaLabel;
+        if (ariaLabel && matchesPatterns(ariaLabel, patterns)) {
+            return true;
+        }
+
+        const value = element.value;
+        if (value && matchesPatterns(value, patterns)) {
+            return true;
+        }
+
+        return false;
+    });
+
+    return found ? true : false;
 }
 
 function isTopmostElement(element) {
@@ -155,6 +180,7 @@ function hasClickHandler(element) {
     if (element.nodeName === 'INPUT'
         && ['submit', 'button'].indexOf(element.attributes.type?.value?.toLowerCase()) !== -1) return true;
     if ([/\bbtn\b/i, /\bbutton\b/i].find(x => x.test(element.className))) return true;
+    if (window.getComputedStyle(element)?.cursor === 'pointer') return true;
     return false;
 }
 
@@ -165,7 +191,8 @@ function getClickHandlerInParents(element) {
 }
 
 function getButtons(visibleElements) {
-    return (visibleElements || getVisibleElements())
+    const elements = visibleElements || getVisibleElements();
+    return elements
         .filter(isTopmostElement)
         .map(getClickHandlerInParents)
         .filter(Boolean)
@@ -197,7 +224,10 @@ function isJWT(token) {
     try {
         const headerJson = atob(token.split('.')[0]);
         const header = JSON.parse(headerJson);
-        if (header.alg) return true;
+        if (header.typ === 'JWT') {
+            logger.log('found typ=JWT in jwt header');
+            return true;
+        }
     }
     catch (e) {
         return false;
@@ -205,12 +235,26 @@ function isJWT(token) {
 
     try {
         const bodyJson = atob(token.split('.')[1]);
-        const header = JSON.parse(bodyJson);
-        if (header.exp) return true;
-        if (header.iss) return true;
-        if (header.email) return true;
-        if (header.sub) return true;
-        if (header.userId) return true;
+        let header = JSON.parse(bodyJson);
+        if (typeof header === 'string') {
+            header = JSON.parse(header);
+        }
+        if (header.iss) {
+            logger.log('found iss in jwt');
+            return true;
+        }
+        if (header.email) {
+            logger.log('found email in jwt');
+            return true;
+        }
+        if (header.sub) {
+            logger.log('found sub in jwt');
+            return true;
+        }
+        if (header.userId) {
+            logger.log('found userId in jwt');
+            return true;
+        }
     }
     catch (e) {
         return false;

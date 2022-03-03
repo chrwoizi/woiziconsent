@@ -37,3 +37,4 @@ var logger = {
     get level() { return this.logLevel }
 }
 logger.level = logger.DEBUG
+window.logger = logger;
